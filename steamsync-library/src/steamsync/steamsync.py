@@ -9,10 +9,10 @@ from pathlib import Path
 
 import vdf
 
-import defs
-import steameditor
-from itch import itch_collect_games
-from xbox import xbox_collect_games
+import steamsync.defs as defs
+import steamsync.steameditor as steameditor
+from steamsync.itch import itch_collect_games
+from steamsync.xbox import xbox_collect_games
 
 
 def parse_arguments():

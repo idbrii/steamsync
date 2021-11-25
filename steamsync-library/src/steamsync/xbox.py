@@ -8,8 +8,8 @@ import subprocess
 from pathlib import Path
 from xml.dom import minidom
 
-import defs
-import util
+import steamsync.defs as defs
+import steamsync.util as util
 
 
 def _get_details_from_config(path_to_config):

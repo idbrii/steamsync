@@ -8,8 +8,8 @@ from pathlib import Path
 
 import toml
 
-import defs
-import util
+import steamsync.defs as defs
+import steamsync.util as util
 
 
 def _load_receipt(path_to_receipt):
