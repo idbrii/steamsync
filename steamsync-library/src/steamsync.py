@@ -3,8 +3,8 @@
 import argparse
 import json
 import os
-import time
 import platform
+import time
 from pathlib import Path
 
 import appdirs
@@ -13,13 +13,15 @@ import vdf
 import defs
 import steameditor
 from itch import itch_collect_games
-from xbox import xbox_collect_games
 from legendary import legendary_collect_games
+from xbox import xbox_collect_games
+
 
 def get_default_steam_path():
-    if platform.system() == 'Linux':
-        return os.path.expanduser('~') + '/.steam/steam'
+    if platform.system() == "Linux":
+        return os.path.expanduser("~") + "/.steam/steam"
     return "C:\\Program Files (x86)\\Steam"
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -141,6 +143,7 @@ def parse_arguments():
     if args.download_art_all_shortcuts:
         args.download_art = True
     return args
+
 
 def egs_collect_games(egs_manifest_path):
     """
@@ -662,7 +665,7 @@ def main():
         print(message)
         return 1
     elif args.init_shortcuts_file:
-        shortcuts = {'shortcuts': {}}
+        shortcuts = {"shortcuts": {}}
     else:
         # read in the shortcuts file
         with open(shortcut_file_path, "rb") as sf:

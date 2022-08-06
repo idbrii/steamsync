@@ -123,7 +123,6 @@ def xbox_collect_games():
             # Doesn't matter because we launch by id.
             exe_name = None
 
-
         if exe_name:
             # We only store the exe to validate the game is real and for
             # migration to uri-based launching.
