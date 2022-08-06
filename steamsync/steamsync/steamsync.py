@@ -4,6 +4,7 @@ import argparse
 import os
 import platform
 import pprint
+import sys
 import time
 from pathlib import Path
 
@@ -13,6 +14,7 @@ import vdf
 import steamsync.defs as defs
 import steamsync.steameditor as steameditor
 from steamsync.launchers.egs import EpicGamesStoreLauncher
+from steamsync.launchers.folder import FolderLauncher
 from steamsync.launchers.itch import ItchLauncher
 from steamsync.launchers.launcher import Launcher
 from steamsync.launchers.legendary import LegendaryLauncher
@@ -35,6 +37,7 @@ def parse_arguments():
         "--source",
         action="append",
         choices=defs.TAGS,
+        default=[],
         help="Storefronts with games to add to Steam. If unspecified, uses all sources. Use argument multiple times to select multiple sources (--source itchio --source xbox).",
         required=False,
     )
@@ -60,6 +63,46 @@ def parse_arguments():
         help="Path where the itch.io app installs games",
         required=False,
     )
+
+    custom_folder = parser.add_argument_group(
+        title="Custom Folder",
+        description="Create shortcuts from files in a single folder. Useful for files launched by a single program (interpreted games, video files, etc.)",
+    )
+
+    custom_folder.add_argument(
+        "--custom-folder",
+        help="A folder where we'll create a shortcut for each file and launch the folder executable with the file as its argument.",
+        required=False,
+    )
+
+    custom_folder.add_argument(
+        "--folder-exe",
+        help="Requires --custom-folder. The program to pass the files in the custom folder. If omitted, we'll use the file as the executable.",
+        required=False,
+        default="",
+    )
+
+    custom_folder.add_argument(
+        "--folder-arg-format",
+        help=r"""Requires --custom-folder. Extra text to put around the file name when passing to the custom exe. Put {} where the argument should go. To put quotes around the file, escape the quotes: --folder-arg-format "\"{}\"" """,
+        required=False,
+        default="{}",
+    )
+
+    custom_folder.add_argument(
+        "--folder-glob",
+        help="Requires --custom-folder. A glob to select files in the custom folder. Use */ for folders and *.* for files.",
+        required=False,
+        default="*",
+    )
+
+    custom_folder.add_argument(
+        "--folder-tag",
+        help="Requires --custom-folder. A tag to set on all shortcuts created from the custom folder.",
+        required=False,
+        default="custom",
+    )
+    # end custom_folder
 
     parser.add_argument(
         "--steam-path",
@@ -149,9 +192,21 @@ def parse_arguments():
 
     args = parser.parse_args()
     if not args.source:
-        args.source = defs.TAGS
+        args.source = defs.DEFAULT_SOURCES
     if args.download_art_all_shortcuts:
         args.download_art = True
+    if not args.custom_folder and (
+        # Only check args without defaults.
+        args.folder_exe
+        or defs.TAG_FOLDER in args.source
+    ):
+        print(
+            "Error: 'folder' source and --folder-* arguments require --custom-folder. See Usage."
+        )
+        print()
+        parser.print_help()
+        sys.exit(-1)
+
     return args
 
 
@@ -491,6 +546,13 @@ def collect_all_games(args):
         defs.TAG_LEGENDARY: LegendaryLauncher(legendary_command=args.legendary_command),
         defs.TAG_EPIC: EpicGamesStoreLauncher(egs_manifest_path=args.egs_manifests),
         defs.TAG_ITCH: ItchLauncher(library_path=args.itch_library),
+        defs.TAG_FOLDER: FolderLauncher(
+            args.custom_folder,
+            args.folder_exe,
+            args.folder_arg_format,
+            args.folder_glob,
+            args.folder_tag or defs.TAG_FOLDER,
+        ),
     }
 
     # remove launchers they didn't ask for
