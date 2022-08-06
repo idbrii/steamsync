@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import platform
+import sys
 import time
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import vdf
 
 import defs
 import steameditor
+from folder import folder_collect_games
 from itch import itch_collect_games
 from legendary import legendary_collect_games
 from xbox import xbox_collect_games
@@ -33,6 +35,7 @@ def parse_arguments():
         "--source",
         action="append",
         choices=defs.TAGS,
+        default=[],
         help="Storefronts with games to add to Steam. If unspecified, uses all sources. Use argument multiple times to select multiple sources (--source itchio --source xbox).",
         required=False,
     )
@@ -58,6 +61,46 @@ def parse_arguments():
         help="Path where the itch.io app installs games",
         required=False,
     )
+
+    custom_folder = parser.add_argument_group(
+        title="Custom Folder",
+        description="Create shortcuts from files in a single folder. Useful for files launched by a single program (interpreted games, video files, etc.)",
+    )
+
+    custom_folder.add_argument(
+        "--custom-folder",
+        help="A folder where we'll create a shortcut for each file and launch the folder executable with the file as its argument.",
+        required=False,
+    )
+
+    custom_folder.add_argument(
+        "--folder-exe",
+        help="Requires --custom-folder. The program to pass the files in the custom folder. If omitted, we'll use the file as the executable.",
+        required=False,
+        default="",
+    )
+
+    custom_folder.add_argument(
+        "--folder-arg-format",
+        help=r"""Requires --custom-folder. Extra text to put around the file name when passing to the custom exe. Put {} where the argument should go. To put quotes around the file, escape the quotes: --folder-arg-format "\"{}\"" """,
+        required=False,
+        default="{}",
+    )
+
+    custom_folder.add_argument(
+        "--folder-glob",
+        help="Requires --custom-folder. A glob to select files in the custom folder. Use */ for folders and *.* for files.",
+        required=False,
+        default="*",
+    )
+
+    custom_folder.add_argument(
+        "--folder-tag",
+        help="Requires --custom-folder. A tag to set on all shortcuts created from the custom folder.",
+        required=False,
+        default="custom",
+    )
+    # end custom_folder
 
     parser.add_argument(
         "--steam-path",
@@ -138,10 +181,37 @@ def parse_arguments():
     )
 
     args = parser.parse_args()
+    using_all_sources = len(defs.TAGS) == len(args.source)
     if not args.source:
-        args.source = defs.TAGS
+        args.source = defs.DEFAULT_SOURCES
     if args.download_art_all_shortcuts:
         args.download_art = True
+    if args.custom_folder and defs.TAG_FOLDER not in args.source:
+        print(
+            "Warning: --custom-folder specified but --source folder was not. Assuming 'folder' source."
+        )
+        print()
+        args.source = [defs.TAG_FOLDER]
+    if (
+        not args.custom_folder
+        and defs.TAG_FOLDER in args.source
+        and using_all_sources  # probably default
+    ):
+        print(
+            "Warning: 'folder' source specified but --custom-folder was not. Removing 'folder' from sources."
+        )
+        print()
+        args.source.remove(defs.TAG_FOLDER)
+    if (
+        # can only check args without defaults
+        args.folder_exe
+        or defs.TAG_FOLDER in args.source
+    ) and not args.custom_folder:
+        print("Error: --folder-* arguments require --custom-folder. See Usage.")
+        print()
+        parser.print_help()
+        sys.exit(-1)
+
     return args
 
 
@@ -576,6 +646,14 @@ def main():
         games += itch_collect_games(args.itch_library)
     if defs.TAG_XBOX in args.source:
         games += xbox_collect_games()
+    if defs.TAG_FOLDER in args.source:
+        games += folder_collect_games(
+            args.custom_folder,
+            args.folder_exe,
+            args.folder_arg_format,
+            args.folder_glob,
+            args.folder_tag or defs.TAG_FOLDER,
+        )
     print()
     print_games(games, args.use_uri)
 

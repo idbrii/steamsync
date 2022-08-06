@@ -5,14 +5,17 @@ from pathlib import Path
 
 TAG_LEGENDARY = "legendary"
 TAG_EPIC = "epicstore"
+TAG_FOLDER = "folder"
 TAG_ITCH = "itchio"
 TAG_XBOX = "xbox"
 TAGS = [
     TAG_LEGENDARY,
     TAG_EPIC,
+    TAG_FOLDER,
     TAG_ITCH,
     TAG_XBOX,
 ]
+DEFAULT_SOURCES = [t for t in TAGS if t != TAG_FOLDER]
 
 
 class GameDefinition:
